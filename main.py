@@ -52,13 +52,14 @@ def fake_installation():
     pygame.quit()
 """
 
-
 def load_sprite_sheet(sheet, frame_width, frame_height):
     sheet_rect = sheet.get_rect()
+    print(f"Sprite sheet dimensions: {sheet_rect.width}x{sheet_rect.height}") 
     frames = []
     for y in range(0, sheet_rect.height, frame_height):
         for x in range(0, sheet_rect.width, frame_width):
             frame_rect = pygame.Rect(x, y, frame_width, frame_height)
+            print(f"Extracting frame at: x={x}, y={y}, width={frame_width}, height={frame_height}")  
             if frame_rect.right <= sheet_rect.width and frame_rect.bottom <= sheet_rect.height:
                 frames.append(sheet.subsurface(frame_rect))
     return frames
@@ -67,33 +68,51 @@ def main_game():
     pygame.init()
     mixer.init()
 
-    # Load and play background music
+
     try:
         mixer.music.load("assets/music/greenlands.mp3")
-        mixer.music.set_volume(1)  # Volume: 0.0 to 1.0
-        mixer.music.play(-1)  # Play the music on a loop
+        mixer.music.set_volume(0.2)  
+        mixer.music.play(-1)  
     except pygame.error as e:
         print(f"Error loading background music: {e}")
         pygame.quit()
         return
 
-    icon_image = pygame.image.load('icon.png')
-    pygame.display.set_icon(icon_image)
+    try:
+        icon_image = pygame.image.load('icon.png')
+        pygame.display.set_icon(icon_image)
+    except pygame.error as e:
+        print(f"Error loading icon image: {e}")
+        pygame.quit()
+        return
+
     screen = pygame.display.set_mode((1280, 720))
     clock = pygame.time.Clock()
     running = True
     dt = 0
 
-    # Load sprite sheets
-    idle_down_sprite_sheet = pygame.image.load("assets/charater/idle/playerdownidle.png").convert_alpha()
-    idle_lr_sprite_sheet = pygame.image.load("assets/charater/idle/playerleftrightidle.png").convert_alpha()
-    idle_up_sprite_sheet = pygame.image.load("assets/charater/idle/playerupidle.png").convert_alpha()
-    walk_down_sprite_sheet = pygame.image.load("assets/charater/moving/playerwalkdown.png").convert_alpha()
-    walk_lr_sprite_sheet = pygame.image.load("assets/charater/moving/playerrightandleftwalk.png").convert_alpha()
-    walk_up_sprite_sheet = pygame.image.load("assets/charater/moving/playerupwalk.png").convert_alpha()
-    slash_sprite_sheet = pygame.image.load("assets/charater/slash/playerdownslash.png").convert_alpha()
+   
+    def load_image(path):
+        try:
+            return pygame.image.load(path).convert_alpha()
+        except pygame.error as e:
+            print(f"Error loading {path}: {e}")
+            pygame.quit()
+            return None
 
-    # Process sprite sheets into frames
+    idle_down_sprite_sheet = load_image("assets/charater/idle/playerdownidle.png")
+    idle_lr_sprite_sheet = load_image("assets/charater/idle/playerleftrightidle.png")
+    idle_up_sprite_sheet = load_image("assets/charater/idle/playerupidle.png")
+    walk_down_sprite_sheet = load_image("assets/charater/moving/playerwalkdown.png")
+    walk_lr_sprite_sheet = load_image("assets/charater/moving/playerrightandleftwalk.png")
+    walk_up_sprite_sheet = load_image("assets/charater/moving/playerupwalk.png")
+    slash_sprite_sheet = load_image("assets/charater/slash/playerdownslash.png")
+
+    if not all([idle_down_sprite_sheet, idle_lr_sprite_sheet, idle_up_sprite_sheet, walk_down_sprite_sheet, walk_lr_sprite_sheet, walk_up_sprite_sheet, slash_sprite_sheet]):
+        print("Error: One or more sprite sheets failed to load.")
+        return
+
+    
     idle_down_frames = load_sprite_sheet(idle_down_sprite_sheet, 48, 30)
     idle_lr_frames = load_sprite_sheet(idle_lr_sprite_sheet, 48, 30)
     idle_up_frames = load_sprite_sheet(idle_up_sprite_sheet, 48, 30)
@@ -101,10 +120,16 @@ def main_game():
     walk_lr_frames = load_sprite_sheet(walk_lr_sprite_sheet, 48, 30)
     walk_lr_frames_flipped = [pygame.transform.flip(frame, True, False) for frame in walk_lr_frames]
     walk_up_frames = load_sprite_sheet(walk_up_sprite_sheet, 48, 30)
-    slash_frames = load_sprite_sheet(slash_sprite_sheet, 48, 30)
+
+   
+    slash_frames = load_sprite_sheet(slash_sprite_sheet, 48, 29) 
+
+    if len(slash_frames) == 0:
+        print("Error: No frames found in slash sprite sheet.")
+        return
 
     scale_factor = 2
-    # Scale frames
+
     def scale_frames(frames, factor):
         return [pygame.transform.scale(frame, (frame.get_width() * factor, frame.get_height() * factor)) for frame in frames]
 
@@ -117,7 +142,6 @@ def main_game():
     walk_up_frames = scale_frames(walk_up_frames, scale_factor)
     slash_frames = scale_frames(slash_frames, scale_factor)
 
-    # Initialize player settings
     player_rect = pygame.Rect(screen.get_width() / 2, screen.get_height() / 2, 50, 100)
     move_speed = 150
 
@@ -130,15 +154,28 @@ def main_game():
     last_move_direction = 'down'
     is_slashing = False
     slash_index = 0
-
+    slash_time_since_last_frame = 0
+    slash_animation_speed = 0.4 / len(slash_frames)  
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    is_slashing = True
-                    slash_index = 0
+                    print("Space key was pressed")
+                    if not is_slashing and last_move_direction == 'down':
+                        is_slashing = True
+                        slash_index = 0
+                        slash_time_since_last_frame = 0
+                        print("Slashing started")
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1: 
+                    print("Mouse key was pressed")
+                    if not is_slashing and last_move_direction == 'down':
+                        is_slashing = True
+                        slash_index = 0
+                        slash_time_since_last_frame = 0
+                        print("Slashing started")
 
         screen.fill("blue")
 
@@ -147,65 +184,66 @@ def main_game():
         move_y = 0
 
         if keys[pygame.K_w] and player_rect.top > 0:
-            move_y -= move_speed
+            move_y -= move_speed * dt
             last_move_direction = 'up'
         if keys[pygame.K_s] and player_rect.bottom < screen.get_height():
-            move_y += move_speed
+            move_y += move_speed * dt
             last_move_direction = 'down'
         if keys[pygame.K_a] and player_rect.left > 0:
-            move_x -= move_speed
+            move_x -= move_speed * dt
             last_move_direction = 'left'
         if keys[pygame.K_d] and player_rect.right < screen.get_width():
-            move_x += move_speed
+            move_x += move_speed * dt
             last_move_direction = 'right'
 
         if move_x != 0 and move_y != 0:
             move_x *= 0.7071
             move_y *= 0.7071
 
-        player_rect.x += move_x * dt
-        player_rect.y += move_y * dt
+        player_rect.x += move_x
+        player_rect.y += move_y
 
         if is_slashing:
-            if slash_index < len(slash_frames):
-                current_image = slash_frames[slash_index]
-                slash_index += 1
-            else:
-                is_slashing = False
-        elif move_x == 0 and move_y == 0:
-            idle_time_since_last_frame += dt
-            if idle_time_since_last_frame >= idle_animation_speed:
-                idle_player_index = (idle_player_index + 1) % len(
-                    idle_down_frames if last_move_direction == 'down' else
-                    idle_up_frames if last_move_direction == 'up' else
-                    idle_lr_frames)
-                idle_time_since_last_frame = 0
-
-            if last_move_direction == 'down':
-                current_image = idle_down_frames[idle_player_index]
-            elif last_move_direction == 'up':
-                current_image = idle_up_frames[idle_player_index]
-            else:
-                current_image = idle_lr_frames[idle_player_index]
-                if last_move_direction == 'left':
-                    current_image = pygame.transform.flip(current_image, True, False)
+            slash_time_since_last_frame += dt
+            if slash_time_since_last_frame >= slash_animation_speed:
+                slash_time_since_last_frame = 0
+                if slash_index < len(slash_frames):
+                    current_image = slash_frames[slash_index]
+                    slash_index += 1
+                else:
+                    is_slashing = False
+                    print("Slashing ended")
         else:
-            walk_time_since_last_frame += dt
-            if walk_time_since_last_frame >= walk_animation_speed:
-                walk_player_index = (walk_player_index + 1) % len(
-                    walk_down_frames if last_move_direction == 'down' else
-                    walk_lr_frames if last_move_direction in ['left', 'right'] else
-                    walk_up_frames)
-                walk_time_since_last_frame = 0
+            if move_x == 0 and move_y == 0:
+                idle_time_since_last_frame += dt
+                if idle_time_since_last_frame >= idle_animation_speed:
+                    idle_time_since_last_frame = 0
+                    idle_player_index = (idle_player_index + 1) % len(
+                        idle_down_frames if last_move_direction == 'down' else idle_up_frames if last_move_direction == 'up' else idle_lr_frames)
 
-            if last_move_direction == 'down':
-                current_image = walk_down_frames[walk_player_index]
-            elif last_move_direction == 'up':
-                current_image = walk_up_frames[walk_player_index]
-            elif last_move_direction == 'left':
-                current_image = walk_lr_frames_flipped[walk_player_index]
+                if last_move_direction == 'down':
+                    current_image = idle_down_frames[idle_player_index]
+                elif last_move_direction == 'up':
+                    current_image = idle_up_frames[idle_player_index]
+                else:
+                    current_image = idle_lr_frames[idle_player_index]
+                    if last_move_direction == 'left':
+                        current_image = pygame.transform.flip(current_image, True, False)
             else:
-                current_image = walk_lr_frames[walk_player_index]
+                walk_time_since_last_frame += dt
+                if walk_time_since_last_frame >= walk_animation_speed:
+                    walk_time_since_last_frame = 0
+                    walk_player_index = (walk_player_index + 1) % len(
+                        walk_down_frames if last_move_direction == 'down' else walk_lr_frames if last_move_direction in ['left', 'right'] else walk_up_frames)
+
+                if last_move_direction == 'down':
+                    current_image = walk_down_frames[walk_player_index]
+                elif last_move_direction == 'up':
+                    current_image = walk_up_frames[walk_player_index]
+                elif last_move_direction == 'left':
+                    current_image = walk_lr_frames_flipped[walk_player_index]
+                else:
+                    current_image = walk_lr_frames[walk_player_index]
 
         screen.blit(current_image, player_rect.topleft)
 
