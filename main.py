@@ -63,15 +63,20 @@ def load_sprite_sheet(sheet, frame_width, frame_height):
                 frames.append(sheet.subsurface(frame_rect))
     return frames
 
-
 def main_game():
     pygame.init()
     mixer.init()
-    mixer.music.load("assets/music/greenlands.mp3")
-    mixer.music.set_volume(1)
-    mixer.music.play(-1)
-    greenland = pygame.mixer.Sound("assets/music/greenlands.mp3")
-    greenland.play()
+
+    # Load and play background music
+    try:
+        mixer.music.load("assets/music/greenlands.mp3")
+        mixer.music.set_volume(1)  # Volume: 0.0 to 1.0
+        mixer.music.play(-1)  # Play the music on a loop
+    except pygame.error as e:
+        print(f"Error loading background music: {e}")
+        pygame.quit()
+        return
+
     icon_image = pygame.image.load('icon.png')
     pygame.display.set_icon(icon_image)
     screen = pygame.display.set_mode((1280, 720))
@@ -80,21 +85,13 @@ def main_game():
     dt = 0
 
     # Load sprite sheets
-    idle_down_sprite_sheet = pygame.image.load(
-        "assets/charater/idle/playerdownidle.png").convert_alpha()
-    idle_lr_sprite_sheet = pygame.image.load(
-        "assets/charater/idle/playerleftrightidle.png").convert_alpha()
-    idle_up_sprite_sheet = pygame.image.load(
-        "assets/charater/idle/playerupidle.png").convert_alpha()
-    walk_down_sprite_sheet = pygame.image.load(
-        "assets/charater/moving/playerwalkdown.png").convert_alpha()
-    walk_lr_sprite_sheet = pygame.image.load(
-        "assets/charater/moving/playerrightandleftwalk.png").convert_alpha()
-    walk_up_sprite_sheet = pygame.image.load(
-        "assets/charater/moving/playerupwalk.png").convert_alpha()
-    slash_sprite_sheet = pygame.image.load(
-        "assets/charater/slash/playerdownslash.png").convert_alpha(
-        )  # Load slash sprite sheet
+    idle_down_sprite_sheet = pygame.image.load("assets/charater/idle/playerdownidle.png").convert_alpha()
+    idle_lr_sprite_sheet = pygame.image.load("assets/charater/idle/playerleftrightidle.png").convert_alpha()
+    idle_up_sprite_sheet = pygame.image.load("assets/charater/idle/playerupidle.png").convert_alpha()
+    walk_down_sprite_sheet = pygame.image.load("assets/charater/moving/playerwalkdown.png").convert_alpha()
+    walk_lr_sprite_sheet = pygame.image.load("assets/charater/moving/playerrightandleftwalk.png").convert_alpha()
+    walk_up_sprite_sheet = pygame.image.load("assets/charater/moving/playerupwalk.png").convert_alpha()
+    slash_sprite_sheet = pygame.image.load("assets/charater/slash/playerdownslash.png").convert_alpha()
 
     # Process sprite sheets into frames
     idle_down_frames = load_sprite_sheet(idle_down_sprite_sheet, 48, 30)
@@ -102,57 +99,26 @@ def main_game():
     idle_up_frames = load_sprite_sheet(idle_up_sprite_sheet, 48, 30)
     walk_down_frames = load_sprite_sheet(walk_down_sprite_sheet, 48, 30)
     walk_lr_frames = load_sprite_sheet(walk_lr_sprite_sheet, 48, 30)
-    walk_lr_frames_flipped = [
-        pygame.transform.flip(frame, True, False) for frame in walk_lr_frames
-    ]
+    walk_lr_frames_flipped = [pygame.transform.flip(frame, True, False) for frame in walk_lr_frames]
     walk_up_frames = load_sprite_sheet(walk_up_sprite_sheet, 48, 30)
     slash_frames = load_sprite_sheet(slash_sprite_sheet, 48, 30)
 
     scale_factor = 2
-    idle_down_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in idle_down_frames
-    ]
-    idle_lr_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in idle_lr_frames
-    ]
-    idle_up_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in idle_up_frames
-    ]
-    walk_down_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in walk_down_frames
-    ]
-    walk_lr_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in walk_lr_frames
-    ]
-    walk_lr_frames_flipped = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in walk_lr_frames_flipped
-    ]
-    walk_up_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in walk_up_frames
-    ]
-    slash_frames = [
-        pygame.transform.scale(frame, (frame.get_width() * scale_factor,
-                                       frame.get_height() * scale_factor))
-        for frame in slash_frames
-    ]  # Scale slash frames
+    # Scale frames
+    def scale_frames(frames, factor):
+        return [pygame.transform.scale(frame, (frame.get_width() * factor, frame.get_height() * factor)) for frame in frames]
+
+    idle_down_frames = scale_frames(idle_down_frames, scale_factor)
+    idle_lr_frames = scale_frames(idle_lr_frames, scale_factor)
+    idle_up_frames = scale_frames(idle_up_frames, scale_factor)
+    walk_down_frames = scale_frames(walk_down_frames, scale_factor)
+    walk_lr_frames = scale_frames(walk_lr_frames, scale_factor)
+    walk_lr_frames_flipped = scale_frames(walk_lr_frames_flipped, scale_factor)
+    walk_up_frames = scale_frames(walk_up_frames, scale_factor)
+    slash_frames = scale_frames(slash_frames, scale_factor)
 
     # Initialize player settings
-    player_rect = pygame.Rect(screen.get_width() / 2,
-                              screen.get_height() / 2, 50, 100)
+    player_rect = pygame.Rect(screen.get_width() / 2, screen.get_height() / 2, 50, 100)
     move_speed = 150
 
     idle_player_index = 0
@@ -171,9 +137,9 @@ def main_game():
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    # Trigger slash animation
                     is_slashing = True
                     slash_index = 0
+
         screen.fill("blue")
 
         keys = pygame.key.get_pressed()
@@ -210,9 +176,9 @@ def main_game():
             idle_time_since_last_frame += dt
             if idle_time_since_last_frame >= idle_animation_speed:
                 idle_player_index = (idle_player_index + 1) % len(
-                    idle_down_frames if last_move_direction ==
-                    'down' else idle_up_frames if last_move_direction ==
-                    'up' else idle_lr_frames)
+                    idle_down_frames if last_move_direction == 'down' else
+                    idle_up_frames if last_move_direction == 'up' else
+                    idle_lr_frames)
                 idle_time_since_last_frame = 0
 
             if last_move_direction == 'down':
@@ -222,16 +188,14 @@ def main_game():
             else:
                 current_image = idle_lr_frames[idle_player_index]
                 if last_move_direction == 'left':
-                    current_image = pygame.transform.flip(
-                        current_image, True, False)
-
+                    current_image = pygame.transform.flip(current_image, True, False)
         else:
             walk_time_since_last_frame += dt
             if walk_time_since_last_frame >= walk_animation_speed:
                 walk_player_index = (walk_player_index + 1) % len(
-                    walk_down_frames if last_move_direction ==
-                    'down' else walk_lr_frames if last_move_direction in
-                    ['left', 'right'] else walk_up_frames)
+                    walk_down_frames if last_move_direction == 'down' else
+                    walk_lr_frames if last_move_direction in ['left', 'right'] else
+                    walk_up_frames)
                 walk_time_since_last_frame = 0
 
             if last_move_direction == 'down':
@@ -248,8 +212,7 @@ def main_game():
         pygame.display.flip()
         dt = clock.tick(60) / 1000
 
-
-pygame.quit()
+    pygame.quit()
 
 if __name__ == "__main__":
     main_game()
