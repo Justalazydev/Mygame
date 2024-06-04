@@ -1,6 +1,7 @@
 import pygame
 import time
 from pygame import mixer
+
 """
 def fake_installation():
     pygame.init()
